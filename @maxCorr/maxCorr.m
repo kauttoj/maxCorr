@@ -53,7 +53,7 @@ classdef maxCorr < handle
     %
     
     % 15.9.2018 Modified version by Janne K. 
-    % -This version accepts data with different signal count (e.g., voxels). Estimation of relevant component count is based on mean signal count.
+    % -Accepts data with different signal count (e.g., voxels). Estimation of relevant component count is based on mean signal count.
     % -Additional cleaning of code
     
     properties (SetAccess = private)
@@ -69,7 +69,7 @@ classdef maxCorr < handle
         CR         % Common regressors
         IR         % Individual regressors
         verb       % Verbose mode
-        W          % Weights inside each subject
+        W          % Weights inside each subject        
     end
     
     methods
@@ -141,7 +141,7 @@ classdef maxCorr < handle
         
         obj = prepare(obj,W);
         d = getPart(obj,i);
-        [U,S]=separate(obj,W,limn,tol);
+        [U,S]=separate(obj,W,limn,tol,NullModel);
         n = maxComponents(obj);
     end
     

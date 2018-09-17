@@ -45,20 +45,21 @@ for i=1:obj.N,
     end;
     
     % compute (unscaled) covariance matrix
+    % Note: routine from GIFT toolbox
     try
         obj.XXt{i} = d*t;
     catch
-        blocks = 1000;               
-        loops = ceil(data_size(i,2)/blocks);
+        blocks = 1000;
+        loops = ceil(m/blocks);
         if (isa(t, 'single'))
-            obj.XXt{i} = zeros(data_size(i,1),data_size(i,1), 'single');
+            obj.XXt{i} = zeros(n, n, 'single');
         else
-            obj.XXt{i} = zeros(data_size(i,1),data_size(i,1));
+            A = zeros(n, n);
         end
         endBlock = 0;
         for nblock = 1:loops
             startBlock = endBlock + 1;
-            endBlock = min([endBlock + blocks, data_size(i,2)]);
+            endBlock = min([endBlock + blocks, m]);
             obj.XXt{i} = obj.XXt{i} + (d(:,startBlock:endBlock)*t(startBlock:endBlock, :));
         end
     end
@@ -67,10 +68,13 @@ for i=1:obj.N,
     clear d t;
 end
 
-assert(nnz(data_size(:,1) - data_size(1,1) ~= 0)==0); %% added by JK (must have equal timepoints count)
+assert(nnz(data_size(:,1) - data_size(1,1) ~= 0)==0); %% added by JK (must have equal timepoints)
 
 obj.data_size = data_size;
 
 end
+
+function 
+
 
 

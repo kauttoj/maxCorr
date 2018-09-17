@@ -61,7 +61,7 @@ elseif (tol==0.0),
 end
 
 if (nargin<5),
-    NullModel = 'parametric';
+    NullModel = 'parametric'; % 30 deg separation
 end
 
 assert(strcmp(NullModel,'nonparametric') || strcmp(NullModel,'parametric'));
@@ -115,7 +115,7 @@ if strcmp(NullModel,'nonparametric')
         nullvals(iter)=s;
     end
     % retain components that surpass 1% of top null values
-    % lower and hence more aggressive than parametric estimates
+    % more aggressive than parametric
     U=U(:,find(ss>prctile(nullvals,1)));
 else
    % find common component count (K) using parametric estimate
