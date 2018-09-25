@@ -13,12 +13,12 @@ s = RandStream('mt19937ar','Seed',1);
 RandStream.setGlobalStream(s);
 
 % data dimensions
-N_subj = 10; % subjects
-N_voxels = 1000+randi(1000,1,N_subj); % randomize voxel count per subject
-T = 1000; % timepoints
-N_common_signals = 20; % how many common signals
-N_unique_signals = 40; % how many unique/individual signals
-N_MaxCorr_components = 10; % Important!
+N_subj = 12; % subjects
+N_voxels = 1000+randi(100,1,N_subj); % randomize voxel count per subject
+T = 300; % timepoints
+N_common_signals = 15; % how many common signals
+N_unique_signals = 30; % how many unique/individual signals
+N_MaxCorr_components = 10; % how many noise components to remove
 
 % create common signals (stimulus driven)
 common_signals = randn(T,N_common_signals);
@@ -58,7 +58,7 @@ end
 % Create maxCorr object
 
 % METHOD 1: Use anonymous function call (recommended)
-% function will be called with 4 parameters: fun(obj.userData,i,obj.N,obj.verb)
+% function will be called with 4 parameters: fun(subject_name,index,N,verbose_flag)
 data_function = @(x1,x2,x3,x4) data{x2};  % here we only need the index, could also use subject name and structs
 obj=maxCorr(data_function,subject_name,N_subj);
 
@@ -80,7 +80,8 @@ for i=1:N_subj
     % U = time x component, subject-dependent noise signals
     % S = 1 x component, eigenvalue
     fprintf('Computing regressors for subject %i\n',i);
-    [U{i},S{i}] = obj.separate(w);    
+    %[U{i},S{i}] = obj.separate(w,[],[],'nonparametric'); % use nonparametric component count estimation (experimental, heavy cleaning)
+    [U{i},S{i}] = obj.separate(w);% use standard parametric estimation (recommended, light cleaning)
     
     % test how well U can explain different parts of original signals
     fprintf('..separation result for subject %i\n',i);

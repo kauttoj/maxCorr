@@ -52,15 +52,16 @@ classdef maxCorr < handle
     % the second largest squared correlation, and so on.
     %
     
-    % 15.9.2018 Modified version by Janne K. 
-    % -This version accepts data with different signal count (e.g., voxels). Estimation of relevant component count is based on mean signal count.
-    % -Additional cleaning of code
+    % 25.9.2018 Modified version by Janne K. 
+    % -Accepts data with different signal count (e.g., voxels). Estimation of relevant component count is based on mean signal count.
+    % -Small cleaning of the code
+    % -Make loadFunc visible (needed to make group fMRI cleaning work)
     
     properties (SetAccess = private)
         N          % Number of blocks/subjects etc.
+        loadFunc   % Function handle to load data (userData,i,N,verb)        
     end
-    properties (SetAccess = private, GetAccess = private)
-        loadFunc   % Function handle to load data (userData,i,N,verb)
+    properties (SetAccess = private, GetAccess = private)        
         userData   % Associated user data
         sdata      % single data set
         data_size  % size of single data set
@@ -69,7 +70,7 @@ classdef maxCorr < handle
         CR         % Common regressors
         IR         % Individual regressors
         verb       % Verbose mode
-        W          % Weights inside each subject
+        W          % Weights inside each subject        
     end
     
     methods
@@ -119,6 +120,18 @@ classdef maxCorr < handle
             obj.data_size = [];
             obj.W = [];
         end
+        function CR=getCR(obj)
+            % obj = obj.clear()
+            %
+            % Clears the internal caching.
+            CR = obj.CR;
+        end  
+        function IR=getIR(obj)
+            % obj = obj.clear()
+            %
+            % Clears the internal caching.
+            IR = obj.IR;
+        end          
         function setCommonRegressors(obj,R)
             % obj.setCommonRegressors(R)
             %
@@ -140,8 +153,8 @@ classdef maxCorr < handle
         end
         
         obj = prepare(obj,W);
-        d = getPart(obj,i);
-        [U,S]=separate(obj,W,limn,tol);
+        d = getPart(obj,i,set_datasize);
+        [U,S]=separate(obj,W,limn,tol,NullModel);
         n = maxComponents(obj);
     end
     

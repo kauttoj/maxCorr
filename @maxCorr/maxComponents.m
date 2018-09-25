@@ -6,7 +6,7 @@ function n = maxComponents(obj)
 if (length(obj.XXt)==0), obj.prepare(); end;
 
 Nr = obj.data_size(1,1); %% added by JK (this should be always equal)
-Nc = round(mean(obj.data_size(:,2))); %% added by JK
+Nc = min(obj.data_size(:,2)); %% added by JK
 t = obj.data_type;
 
 T=ones(Nr,1);

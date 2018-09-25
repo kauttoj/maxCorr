@@ -1,4 +1,4 @@
-function [U,S]=separate(obj,W,limn,tol)
+function [U,S]=separate(obj,W,limn,tol,NullModel)
 % [U,S] = obj.separate(W,limn,tol)
 %
 % Find the components that separate the chosen data-sets from
@@ -24,6 +24,8 @@ function [U,S]=separate(obj,W,limn,tol)
 
 % modified 15.9.2018 JanneK
 % -allow varying voxel size
+% -allow use of permutation to find shared component count (note: much
+% lower than standard parametric estimate, allows higher signal reduction)
 
 if (length(W)==1),
     tmp=W;
@@ -58,6 +60,12 @@ elseif (tol==0.0),
     tol = [];
 end
 
+if (nargin<5),
+    NullModel = 'parametric';
+end
+
+assert(strcmp(NullModel,'nonparametric') || strcmp(NullModel,'parametric'));
+
 % tol, 10 deg -> 0.1233, 20 deg -> 0.2456, 30 deg -> 0.3660
 % tol, 5 deg -> 0.0617, 1 deg -> 0.0123, 0.1 deg -> 0.0012
 if (length(limn)==0 || limn(1)>Nv) 
@@ -69,24 +77,51 @@ if (obj.verb)
     fprintf(1,'Separate(W,%d)\n',limn);
 end
 
-% estimate r2 for null distribution
+% estimate r2 for null distribution (highly conservative, large component
+% count)
 ND=Nr;
 r2=maxCorr.calcER2(ND) * Nc;
-%
+% covariance matrix of the subject with non-shared signals (to be removed)
 XXtp=zeros(Nr,Nr,class(obj.XXt{1}));
 for j=1:length(wpi), 
     XXtp=XXtp+obj.XXt{wpi(j)}*W(wpi(j)); 
 end;
-%
+% covariance matrix of all other subjects with common signals
+% note: With unequal signal count, more signals -> higher covariances -> higher
+% importance
 XXtn=zeros(Nr,Nr,class(obj.XXt{1}));
 for j=1:length(wni), 
     XXtn=XXtn-obj.XXt{wni(j)}*W(wni(j)); 
 end;
+% Now:
+%  XXtp = covariance matrix of the dataset to estimate noise components
+%  XXtn = sum of covariance matrices of all other datasets
 %
-% XXtp = covariance matrix of the dataset to estimate noise components
-% XXtn = sum of covariance matrices of all other datasets
-
-U=findXXt_strict(XXtn,-sum(W(wni)),r2,limn);
+if strcmp(NullModel,'nonparametric')
+    % find common component count (K) using permutations for circularly
+    % shifted timeseries
+    [U,ss]=svd(XXtn,0);
+    ss = diag(ss);
+    nullvals=nan(1,1000);
+    for iter = 1:1000
+        XXtn_null=zeros(Nr,Nr,class(obj.XXt{1}));
+        for j=1:length(wni),
+            perm = circshift(1:ND,[0,randi(ND-1)]);
+            % permuting covariance matrix rows & cols equals to permuting original
+            % timeseries
+            XXtn_null=XXtn_null-obj.XXt{wni(j)}(perm,perm)*W(wni(j));
+        end;
+        [~,s]=svds(XXtn_null,1);
+        nullvals(iter)=s;
+    end
+    % retain components that surpass 1% of top null values
+    % lower and hence more aggressive than parametric estimates
+    U=U(:,find(ss>prctile(nullvals,1)));
+else
+   % find common component count (K) using parametric estimate
+   % (conservative)
+   U=findXXt_strict(XXtn,-sum(W(wni)),r2,limn);
+end
 % construct "must have" regressors
 u=[];
 if (length(obj.CR)), 
@@ -117,10 +152,12 @@ end
 u=[u UU(:,1:Ntol)]; clear s;
 P=eye(size(XXtp,1),size(XXtp,1),class(U))-u*pinv(u);
 
-% diagonalize individual covariance matrix with a shared group matrix
+% project shared projections out from individual projection
 XXtp=P*XXtp*P';
+% find individual components
 [U,S]=svd(XXtp);
 S=diag(S)/r2;
+% remove the weakest components (typically only interested in first ~10)
 U=U(:,1:end-size(u,2));
 S=S(1:end-size(u,2));
 
@@ -128,7 +165,8 @@ end
 
 function u=findXXt_strict(XXtn,ns,r2,limn)
 
-[u,s]=svd(XXtn);s=diag(s);
+[u,s]=svd(XXtn);
+s=diag(s);
 s=s(1:limn);
 n=length(find(s>(r2*ns)));
 u=u(:,1:n);

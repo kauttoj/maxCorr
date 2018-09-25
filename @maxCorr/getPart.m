@@ -3,6 +3,7 @@ function d = getPart(obj,i)
 %
 % Returns the data for part i of a multi-part data set.
 %
+
 if (length(obj.sdata)),
    d = obj.sdata;
 else
@@ -16,7 +17,7 @@ if ~isempty(bad_items),
     warning('Set %i: Removing %i bad timeseries, with %i remaining',i,length(bad_items),size(d,2));
 end
 
-if (length(obj.data_size)==0)
+if length(obj.data_size)==0
    obj.data_size = size(d);
    if (isa(d,'msMatrix'))
       obj.data_type=d.type();
