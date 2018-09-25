@@ -5,7 +5,8 @@ maxCorr method to clean multivariate signals via removal of individual (noise) c
 
 In this modified version, the number of signals (e.g., voxels) per subject does not need to be equal. This affects the parametric estimation of the threshold associated with the total count of meaningful common signal components. Here the threshold is based on the mean signal count over other subjects. I have also added option to use slower, non-parametric permutations to estimate common component count, which typically lead to more aggressive cleaning (smaller common space). I have added functions to process large fMRI datasets efficiently in parallel using grid computing.
 
-Usage: Check demo scripts 
+Usage: Check these demo scripts 
+
 "maxCorr_demo_fMRI_SLURM.m" parallelized grid computing for fMRI
 "maxCorr_simple_demo.m" simple local computing for generic signals
 
