@@ -52,10 +52,16 @@ classdef maxCorr < handle
     % the second largest squared correlation, and so on.
     %
     
+<<<<<<< HEAD
     % 25.9.2018 Modified version by Janne K. 
     % -Accepts data with different signal count (e.g., voxels). Estimation of relevant component count is based on mean signal count.
     % -Small cleaning of the code
     % -Make loadFunc visible (needed to make group fMRI cleaning work)
+=======
+    % 15.9.2018 Modified version by Janne K. 
+    % -Accepts data with different signal count (e.g., voxels). Estimation of relevant component count is based on mean signal count.
+    % -Additional cleaning of code
+>>>>>>> 17d3129fa76097129e0a4bbe82b0175c6b0d76e8
     
     properties (SetAccess = private)
         N          % Number of blocks/subjects etc.
@@ -153,7 +159,11 @@ classdef maxCorr < handle
         end
         
         obj = prepare(obj,W);
+<<<<<<< HEAD
         d = getPart(obj,i,set_datasize);
+=======
+        d = getPart(obj,i);
+>>>>>>> 17d3129fa76097129e0a4bbe82b0175c6b0d76e8
         [U,S]=separate(obj,W,limn,tol,NullModel);
         n = maxComponents(obj);
     end

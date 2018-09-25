@@ -44,6 +44,7 @@ for i=1:obj.N,
     if (length(W)>0 && length(W)~=size(d,2))
         error('Wrong number of weights, must be %d.',size(d,2));
     end
+<<<<<<< HEAD
 
     %   
     if (length(W)>0), % multiply weights
@@ -70,6 +71,41 @@ for i=1:obj.N,
     end    
     d =[];    
 end
+=======
+    %
+    t = d';
+    if (length(obj.W)>0), % multiply weights
+        d = bsxfun(@times, d, obj.W);
+    end;
+    if (obj.verb),
+        fprintf(1,'Multiplying %dx%d * %dx%d - ',size(d,1),size(d,2),size(t,1),size(t,2));
+    end;
+    
+    % compute (unscaled) covariance matrix
+    try
+        obj.XXt{i} = d*t;
+    catch
+        blocks = 1000;               
+        loops = ceil(data_size(i,2)/blocks);
+        if (isa(t, 'single'))
+            obj.XXt{i} = zeros(data_size(i,1),data_size(i,1), 'single');
+        else
+            obj.XXt{i} = zeros(data_size(i,1),data_size(i,1));
+        end
+        endBlock = 0;
+        for nblock = 1:loops
+            startBlock = endBlock + 1;
+            endBlock = min([endBlock + blocks, data_size(i,2)]);
+            obj.XXt{i} = obj.XXt{i} + (d(:,startBlock:endBlock)*t(startBlock:endBlock, :));
+        end
+    end
+    
+    if (obj.verb), fprintf(1,'done.\n'); end;
+    clear d t;
+end
+
+assert(nnz(data_size(:,1) - data_size(1,1) ~= 0)==0); %% added by JK (must have equal timepoints count)
+>>>>>>> 17d3129fa76097129e0a4bbe82b0175c6b0d76e8
 
 dsize = nan(obj.N,2);
 for i=1:obj.N,
@@ -84,3 +120,9 @@ obj.data_type=dtype{1};
 end
 
 
+<<<<<<< HEAD
+=======
+end
+
+
+>>>>>>> 17d3129fa76097129e0a4bbe82b0175c6b0d76e8
