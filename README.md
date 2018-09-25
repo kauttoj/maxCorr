@@ -8,6 +8,7 @@ In this modified version, the number of signals (e.g., voxels) per subject does 
 Usage: Check these demo scripts 
 
 "maxCorr_demo_fMRI_SLURM.m" parallelized grid computing for fMRI
+
 "maxCorr_simple_demo.m" simple local computing for generic signals
 
 Main parts of the code was written and published by the authors of the following paper (all credits and citations should go to them):
