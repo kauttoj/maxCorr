@@ -14,19 +14,16 @@ RandStream.setGlobalStream(s);
 
 % data dimensions
 N_subj = 12; % subjects
-<<<<<<< HEAD:maxCorr_simple_demo.m
 N_voxels = 1000+randi(100,1,N_subj); % randomize voxel count per subject
 T = 300; % timepoints
 N_common_signals = 15; % how many common signals
 N_unique_signals = 30; % how many unique/individual signals
 N_MaxCorr_components = 10; % how many noise components to remove
-=======
 N_voxels = 500+randi(100,1,N_subj); % randomize voxel count per subject
 T = 300; % timepoints
 N_common_signals = 15; % how many common signals
 N_unique_signals = 30; % how many unique/individual signals
 N_MaxCorr_components = 10; % Important!
->>>>>>> 17d3129fa76097129e0a4bbe82b0175c6b0d76e8:maxCorr_demo.m
 
 % create common signals (stimulus driven)
 common_signals = randn(T,N_common_signals);
