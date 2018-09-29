@@ -1,4 +1,7 @@
-function wait_for_jobs(CONFIGFILES,jobnames,jobfiles,STAGE)
+function wait_for_jobs(CONFIGFILES,jobnames,jobfiles,lognames,STAGE)
+% This function monitors progress of jobs and resubmits failed jobs if
+% necessary. Status of each cfg file must be valid to mark it completed. If
+% there are too many failed submissions, we crash (check logs to solve).
 
 if ~iscell(CONFIGFILES)
     temp{1} = CONFIGFILES;
@@ -16,11 +19,11 @@ resubmit_count = zeros(1,N_files);
 
 pause(30);
 
-POLL_DELAY = 30;
-TIMES_TO_TRY = 10;
-RESUBMIT_DELAY = 60;
+POLL_DELAY = 20;
+TIMES_TO_TRY = 5;
+RESUBMIT_DELAY = 30;
 resubmit_delays = zeros(1,N_files);
-PRINTOUT = 2*60;
+PRINTOUT = 60;
 
 starttime = tic;
 
@@ -28,60 +31,46 @@ TOT_time = 0;
 while 1
     pause(POLL_DELAY);
     TOT_time = TOT_time + POLL_DELAY;
-    ISDONE=1;
     for i = 1:N_files
-        count = 0;
-        while 1
-            try
-                count = count + 1;
-                A=load(CONFIGFILES{i});
-                break;
-            catch err
-                pause(3);
-                if count>10
-                    error('Failed to read CFG file ''%s'' (%s)!',CONFIGFILES{i},err.message);
-                end
-            end
-        end
-        if A.stage < STAGE
-            ISDONE=0;
-        else
-            done_files(i) = 1;       
-        end
+        done_files(i) = check_stage(i,CONFIGFILES,STAGE);
     end
-    for i = 1:N_files
-        
+    for i = 1:N_files        
         if done_files(i)==0
-            
             FAILED=0;
-            [job_state,job_message]=system(['qstat -f ',jobnames{i}]);
-            
+            [job_state,job_message]=system(['qstat -f ',jobnames{i}]);            
             if job_state==153
                 FAILED = 1; % job is not complete and not in queue, it has failed
-            end
-            
+            end            
             if FAILED>0
-                if resubmit_count(i)<TIMES_TO_TRY
-                    if resubmit_delays(i)+toc(starttime) > RESUBMIT_DELAY
-                        resubmit_count(i)=resubmit_count(i)+1;
-                        fprintf('FAILED code was %i, job state code was %i, resubmitting job for file %i (%ith time, delay %is)\n',FAILED,job_state,i,resubmit_count(i),round(resubmit_delays(i)));
-                        [notused,jobnames{i}] = system(['qbatch ' jobfiles{i}]);
-                        resubmit_delays(i)=-toc(starttime);
+                % due to delays, check the status again
+                done_files(i) = check_stage(i,CONFIGFILES,STAGE);
+                if done_files(i)==0
+                    if resubmit_count(i)<TIMES_TO_TRY
+                        d = resubmit_delays(i)+toc(starttime);
+                        if d > RESUBMIT_DELAY
+                            resubmit_count(i)=resubmit_count(i)+1;
+                            fprintf('FAILED with state code %i, resubmitting job ''%s'' (message: %s, %ith time, delay %is)\n',job_state,jobfiles{i},job_message,resubmit_count(i),round(d));
+
+							copyfile(lognames{i},[lognames{i},'_failed_nr',num2str(resubmit_count(i))]);
+
+                            [notused,jobnames{i}] = system(['sbatch ' jobfiles{i}]);
+                            resubmit_delays(i)=-toc(starttime);
+                        end
+                    else
+                        error('Tried to submit job %s over %i times, cannot continue processing!',jobfiles{i},TIMES_TO_TRY);
                     end
-                else
-                    error('Tried to submit job %s over %i times, cannot continue processing!',jobfiles{i},TIMES_TO_TRY);
                 end
             end
         end
     end
     
-    if ISDONE==1
+    if sum(done_files)==length(done_files)
         break;
     end
     if TOT_time/60/60 > 2
         error('Aborted after waiting over 2h for jobs to finish :(');
     end
-    if PRINTOUT/60 > 5
+    if PRINTOUT/60 > 1
         fprintf('...%i jobs completed and %i jobs resubmitted (of total %i)\n',nnz(done_files),nnz(resubmit_count),N_files);
         PRINTOUT = 0;
     else
@@ -90,6 +79,28 @@ while 1
 end
 
 fprintf('... All %i jobs completed!\n',nnz(done_files));
+
+end
+
+function ISDONE = check_stage(i,CONFIGFILES,STAGE)
+
+    count = 0;
+    ISDONE = 0;
+    while 1
+        try
+            count = count + 1;
+            A=load(CONFIGFILES{i});
+            break;
+        catch err
+            pause(2);
+            if count>5
+                error('Failed to read CFG file ''%s'' (%s)!',CONFIGFILES{i},err.message);
+            end
+        end
+    end
+    if A.stage == STAGE
+        ISDONE=1;
+    end
 
 end
 

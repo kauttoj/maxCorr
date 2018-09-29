@@ -157,34 +157,39 @@ function maxCorr_clean_dataset(cfg_file)
     % get original data
     data = obj.loadFunc(CFG.cfg,subj_iter,obj.N,0);
     assert(data_size(subj_iter,2)==size(data,2));
+	fprintf('...%i: data has %i signals with %i timepoints (%s)\n',subj_iter,size(data,2),size(data,1),datestr(datetime('now')));
     % design matrix of noise for this subject
     X = U(:,1:CFG.cfg.N_MaxCorr_components);
     % add constant just in case
     X = [ones(size(X,1),1),X];
     % regress out via pseudoinverse, retain means
     orig_var = var(data);
+	% store means
     m = mean(data);
     data = bsxfun(@minus,data,m);
     data = data - X*pinv(X)*data;
+	% add means back
     data = bsxfun(@plus,data,m);
     new_var = var(data);   
-    fprintf('...%i: stats: %i common-space comps. (total %i), total var reduced by %.2f%% (with %i comps)\n',subj_iter,N_common_space,Nc,100*(1-sum(new_var)/sum(orig_var)),CFG.cfg.N_MaxCorr_components);
+    var_red = 100*(1-sum(new_var)/sum(orig_var));
+    fprintf('...%i: stats: %i common-space comps (out of %i), total var reduced by %.2f%% (with %i comps)\n',subj_iter,N_common_space,min(Nv,Nc),var_red,CFG.cfg.N_MaxCorr_components);
     % save cleaned data
     fprintf('...%i: saving data (%s)\n',subj_iter,datestr(datetime('now')));
+	% by entering 5th input, we save the cleaned data
     obj.loadFunc(CFG.cfg,subj_iter,obj.N,0,data);    
     fprintf('...%i: done! (%s)\n',subj_iter,datestr(datetime('now')));
     
     CFG.stage = 2;
     
-    save_cfg(CFG.cfg.filenames(CFG.cfg.process_index).cfgfile,CFG.cfg,CFG.stage);
+    save_cfg(CFG.cfg.filenames(CFG.cfg.process_index).cfgfile,CFG.cfg,CFG.stage,var_red,data_size(subj_iter,:));
     
 end
 
-function save_cfg(filename,cfg,stage)
+function save_cfg(filename,cfg,stage,variance_reduction,data_size)
 
-save(filename,'cfg','stage','-v7.3');
+save(filename,'cfg','stage','variance_reduction','data_size','-v7.3');
 
-end    
+end
 
 function u=findXXt_strict(XXtn,ns,r2,limn)
 
