@@ -4,11 +4,13 @@ logfile = [filename,'_log'];
 
 dlmwrite(filename, '#!/bin/sh', '');
 dlmwrite(filename, '#SBATCH -p batch','-append','delimiter','');
-dlmwrite(filename, '#SBATCH -t 00:30:00','-append','delimiter','');
-dlmwrite(filename, '#SBATCH -c 1','-append','delimiter','');
+dlmwrite(filename, '#SBATCH -t 03:00:00','-append','delimiter','');
+dlmwrite(filename, '#SBATCH -N 1','-append','delimiter','');
+dlmwrite(filename, '#SBATCH -n 1','-append','delimiter','');
 dlmwrite(filename, '#SBATCH --qos=normal','-append','delimiter','');
 dlmwrite(filename, ['#SBATCH -o "' logfile '"'],'-append','delimiter','');
-dlmwrite(filename, '#SBATCH --mem=25000','-append','delimiter','');
+dlmwrite(filename, '#SBATCH --mem-per-cpu=25000','-append','delimiter','');
+dlmwrite(filename, 'hostname; date;','-append','delimiter','');
 dlmwrite(filename, 'module load matlab','-append','delimiter','');
 dlmwrite(filename,sprintf('srun matlab -nosplash -nodisplay -nodesktop -r "cd(''%s'');fprintf('' current path: %%s '',pwd());%s(''%s'');exit;"',codepath,funfile,paramfile),'-append','delimiter','');
 

@@ -52,7 +52,7 @@ function maxCorr_clean_dataset(cfg_file)
     else
        tol = CFG.cfg.tol;
     end
-    if (tol==0.0),
+    if (tol==0.0)
         tol = [];
     end        
     % tol, 10 deg -> 0.1233, 20 deg -> 0.2456, 30 deg -> 0.3660
@@ -68,25 +68,25 @@ function maxCorr_clean_dataset(cfg_file)
     r2=maxCorr.calcER2(ND) * Nc;
     % covariance matrix of the subject with non-shared signals (to be removed)
     XXtp=zeros(Nr,Nr,data_type);
-    for j=1:length(wpi),
+    for j=1:length(wpi)
         A = load(CFG.cfg.filenames(wpi(j)).covfile,'XXt');
         XXtp=XXtp+A.XXt*W(wpi(j));
-    end;
+    end
     A=[];
     % covariance matrix of all other subjects with common signals
     % note: With unequal signal count, more signals -> higher covariances -> higher
     % importance
     XXtn=zeros(Nr,Nr,data_type);
-    for j=1:length(wni),
+    for j=1:length(wni)
         A = load(CFG.cfg.filenames(wni(j)).covfile,'XXt');
         XXtn=XXtn-A.XXt*W(wni(j));
-    end;
+    end
     A=[];
     % Now:
     %  XXtp = covariance matrix of the dataset to estimate noise components
     %  XXtn = sum of covariance matrices of all other datasets
     %
-    if 0% strcmp(NullModel,'nonparametric') SKIP it for now
+    if 0% strcmp(NullModel,'nonparametric') SKIP it for now - experimental with risk of real signal removal
         fprintf('...%i: starting permutations (%s)\n',subj_iter,datestr(datetime('now')));
         % find common component count (K) using permutations for circularly
         % shifted timeseries
@@ -109,7 +109,7 @@ function maxCorr_clean_dataset(cfg_file)
         U=U(:,find(ss>prctile(nullvals,1)));
     else
         % find common component count (K) using parametric estimate
-        % (conservative)
+        % More conservative default option (in paper)
         U=findXXt_strict(XXtn,-sum(W(wni)),r2,limn);
     end
     N_common_space = size(U,2);
@@ -170,24 +170,25 @@ function maxCorr_clean_dataset(cfg_file)
     data = data - X*pinv(X)*data;
 	% add means back
     data = bsxfun(@plus,data,m);
-    new_var = var(data);   
-    var_red = 100*(1-sum(new_var)/sum(orig_var));
-    fprintf('...%i: stats: %i common-space comps (out of %i), total var reduced by %.2f%% (with %i comps)\n',subj_iter,N_common_space,min(Nv,Nc),var_red,CFG.cfg.N_MaxCorr_components);
+    new_var = var(data);
+    var_red_ratio = 1 - (new_var./orig_var);
+    var_red_summary = 100*(1-sum(new_var)/sum(orig_var));
+    fprintf('...%i: stats: %i common-space comps (out of %i), total var reduced by %.2f%% (with %i comps)\n',subj_iter,N_common_space,min(Nv,Nc),var_red_summary,CFG.cfg.N_MaxCorr_components);
     % save cleaned data
     fprintf('...%i: saving data (%s)\n',subj_iter,datestr(datetime('now')));
 	% by entering 5th input, we save the cleaned data
-    obj.loadFunc(CFG.cfg,subj_iter,obj.N,0,data);    
+    obj.loadFunc(CFG.cfg,subj_iter,obj.N,0,data,var_red_ratio);    
     fprintf('...%i: done! (%s)\n',subj_iter,datestr(datetime('now')));
     
     CFG.stage = 2;
     
-    save_cfg(CFG.cfg.filenames(CFG.cfg.process_index).cfgfile,CFG.cfg,CFG.stage,var_red,data_size(subj_iter,:));
+    save_cfg(CFG.cfg.filenames(CFG.cfg.process_index).cfgfile,CFG.cfg,CFG.stage,var_red_summary,var_red_ratio,data_size(subj_iter,:));
     
 end
 
-function save_cfg(filename,cfg,stage,variance_reduction,data_size)
+function save_cfg(filename,cfg,stage,variance_reduction_total_prc,variance_reduction_ratio,data_size)
 
-save(filename,'cfg','stage','variance_reduction','data_size','-v7.3');
+save(filename,'cfg','stage','variance_reduction_total_prc','variance_reduction_ratio','data_size','-v7.3');
 
 end
 

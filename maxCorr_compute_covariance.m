@@ -16,7 +16,7 @@ function maxCorr_compute_covariance(cfg_file)
     try
         XXt = d*d';
     catch
-        blocks = 1000;               
+        blocks = 1000;
         loops = ceil(data_size(2)/blocks);
         if (isa(d, 'single'))
             XXt = zeros(data_size(1),data_size(1), 'single');

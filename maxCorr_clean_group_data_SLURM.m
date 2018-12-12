@@ -1,5 +1,5 @@
 function maxCorr_clean_group_data_SLURM(cfg)
-% run maxCorr for a group with grid processing
+% run maxCorr for a group using grid processing (one job/subject)
 
 assert(cfg.N_MaxCorr_components>0 && cfg.N_MaxCorr_components<15);
 
@@ -10,6 +10,14 @@ assert(strcmp(cfg.NullModel,'nonparametric') || strcmp(cfg.NullModel,'parametric
 
 if ~isfield(cfg,'limn')
     cfg.limn = []; % default is empty
+end
+
+if ~isfield(cfg,'N_timepoints')
+    cfg.N_timepoints=-1;
+end
+
+if ~isfield(cfg,'useUntouchNifti')
+    cfg.useUntouchNifti=0; % use normal reading mode by default
 end
 
 if ~isfield(cfg,'tol')
@@ -38,9 +46,9 @@ for i = 1:N
     else
         id=''; 
     end
-    cfg.filenames(i).cfgfile = [filepath,filesep,sprintf('maxCorr_cfg_subject%i.mat',i)];    
-    cfg.filenames(i).jobfile1 = [filepath,filesep,sprintf('maxCorr_COV_jobfile_subject%i',i)];
-    cfg.filenames(i).jobfile2 = [filepath,filesep,sprintf('maxCorr_cleaning_jobfile_subject%i',i)];
+    cfg.filenames(i).cfgfile = [filepath,filesep,sprintf('maxCorr_cfg_%icomp_subject%i.mat',cfg.N_MaxCorr_components,i)];    
+    cfg.filenames(i).jobfile1 = [filepath,filesep,sprintf('maxCorr_COV_jobfile_%icomp_subject%i',cfg.N_MaxCorr_components,i)];
+    cfg.filenames(i).jobfile2 = [filepath,filesep,sprintf('maxCorr_cleaning_jobfile_%icomp_subject%i',cfg.N_MaxCorr_components,i)];
     cfg.filenames(i).covfile = [filepath,filesep,filename,sprintf('_COV%s.mat',id)];
     cfg.filenames(i).targetfile = [filepath,filesep,filename,sprintf('_maxCorr%icomp%s.nii',cfg.N_MaxCorr_components,id)];
     save(cfg.filenames(i).cfgfile,'cfg','stage','-v7.3');
@@ -98,12 +106,12 @@ wait_for_jobs(cfgfiles(wait_for),jobnames(wait_for),jobfiles(wait_for),lognames(
 
 % finally save the variances into a convenient vector format
 try
-    variance_reduction = nan(1,N);
+    variance_reduction_total_prc = nan(1,N);
     for i = 1:N,
         A = load(cfg.filenames(i).cfgfile); 
-        variance_reduction(i) = A.variance_reduction;
+        variance_reduction_total_prc(i) = A.variance_reduction_total_prc;
     end
-    save(cfg_filename,'cfg','variance_reduction','-v7.3');
+    save(cfg_filename,'cfg','variance_reduction_total_prc','-v7.3');
 end
 
 fprintf('\n----------- MaxCorr finished! (%s)-------------\n',datestr(datetime('now')));

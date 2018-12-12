@@ -23,11 +23,13 @@ cfg=[];
 cfg.recompute_all = 0; % set 1 if want to recompute all results (otherwise skips existing)
 %cfg.output_folder = '/m/nbe/scratch/alex/private/janne/preprocessed_ini_data/testing'; % put all new files here (for TESTING)
 cfg.maxCorr_path = '/m/nbe/scratch/braindata/kauttoj2/code/maxCorr';
-cfg.N_MaxCorr_components = 5; % how many individual "noise" components to remove (5-10 ok)
+cfg.useUntouchNifti = 0; % use UNTOUCH nifti read/write mode, recommended only for native space data!
+% cfg.N_timepoints = 100; % if set, only take fixed number of timepoints (useful if there are excess data at the end)
+cfg.N_MaxCorr_components = 5; % how many individual "noise" components to remove (5-10 typically ok)
+
 %% following three parameters are optional, comment out for defaults (safest option)
 %cfg.limn_in=0; % maximum component limit
 %cfg.tol_in=0.25; % angular separation
-%cfg.NullModel='parametric'; % estimation method of common components (parametric is more conservative)
 
 % Every subjects needs input functional data and mask as NIFTI files
 % cfg.filenames(s).sourcefile = functional NIFTI (multiple slices)
@@ -43,7 +45,7 @@ for ses = sessions,
         
         % assumed form of datapath
         % NOTE: Also a folder to save all results and tempfiles for this subject
-        filename = sprintf('%s/%s/run%i/detrended.nii',dataroot,sub,ses);
+        filename = sprintf('%s/%s/run%i/detrended_data.nii',dataroot,sub,ses);
         cfg.filenames(s).sourcefile = filename;
 
         % assumed form and name of the mask. This should be a "loose" mask for brain
