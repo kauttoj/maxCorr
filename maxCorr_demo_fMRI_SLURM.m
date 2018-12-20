@@ -20,12 +20,12 @@ subjects = {'b1k','d3a','d4w','d6i','e6x','g3r','i2p','i7c','m3s','m8f','n5n','n
 sessions = [2     3     5     7     8]; % or runs
 
 cfg=[];
-cfg.recompute_all = 0; % set 1 if want to recompute all results (otherwise skips existing)
-%cfg.output_folder = '/m/nbe/scratch/alex/private/janne/preprocessed_ini_data/testing'; % put all new files here (for TESTING)
+cfg.recompute_all = 0; % set 1 if want to recompute all results (otherwise skips all existing results)
+%cfg.output_folder = '/m/nbe/scratch/alex/private/janne/preprocessed_ini_data/testing'; % put all new files here (useful for TESTING)
 cfg.maxCorr_path = '/m/nbe/scratch/braindata/kauttoj2/code/maxCorr';
 cfg.useUntouchNifti = 0; % use UNTOUCH nifti read/write mode, recommended only for native space data!
 % cfg.N_timepoints = 100; % if set, only take fixed number of timepoints (useful if there are excess data at the end)
-cfg.N_MaxCorr_components = 5; % how many individual "noise" components to remove (5-10 typically ok)
+cfg.N_MaxCorr_components = 5; % how many individual "noise" components to remove (~5-10 typically ok)
 
 %% following three parameters are optional, comment out for defaults (safest option)
 %cfg.limn_in=0; % maximum component limit
@@ -48,10 +48,16 @@ for ses = sessions,
         filename = sprintf('%s/%s/run%i/detrended_data.nii',dataroot,sub,ses);
         cfg.filenames(s).sourcefile = filename;
 
+        % OPTIONAL: You can separate data and noise masks, i.e., get signals from noise mask and apply cleaning to data mask
+        % If not set, the same mask is used for noise and cleaning (default function)
+        %% data mask whose voxels signals are cleaned
+        %filename = sprintf('%s/%s/run%i/data_mask.nii',dataroot,sub,ses);
+        %cfg.filenames(s).data_maskfile = filename;     
+        
         % assumed form and name of the mask. This should be a "loose" mask for brain
         % voxels and surrounding space where we obtain relevant signals
         filename = sprintf('%s/%s/run%i/mask.nii',dataroot,sub,ses);
-        cfg.filenames(s).maskfile = filename;        
+        cfg.filenames(s).maskfile = filename;           
     end      
     % run maxCorr for this session/run
     maxCorr_clean_group_data_SLURM(cfg);
