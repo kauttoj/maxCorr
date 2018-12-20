@@ -23,14 +23,12 @@ POLL_DELAY = 20;
 TIMES_TO_TRY = 5;
 RESUBMIT_DELAY = 30;
 resubmit_delays = zeros(1,N_files);
-PRINTOUT = 60;
 
-starttime = tic;
+starttime = tic();
+LAST_PRINTOUT = 0;
 
-TOT_time = 0;
 while 1
     pause(POLL_DELAY);
-    TOT_time = TOT_time + POLL_DELAY;
     for i = 1:N_files
         done_files(i) = check_stage(i,CONFIGFILES,STAGE);
     end
@@ -67,14 +65,13 @@ while 1
     if sum(done_files)==length(done_files)
         break;
     end
+    TOT_time = toc(starttime);
     if TOT_time/60/60 > 2
         error('Aborted after waiting over 2h for jobs to finish :(');
     end
-    if PRINTOUT/60 > 1
+    if TOT_time - LAST_PRINTOUT > 60
         fprintf('...%i jobs completed and %i jobs resubmitted (of total %i)\n',nnz(done_files),nnz(resubmit_count),N_files);
-        PRINTOUT = 0;
-    else
-        PRINTOUT = PRINTOUT + POLL_DELAY;
+        LAST_PRINTOUT=TOT_time;
     end
 end
 

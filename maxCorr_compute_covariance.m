@@ -9,9 +9,12 @@ function maxCorr_compute_covariance(cfg_file)
     fprintf('starting with subject %i of %i (%s)\n',CFG.cfg.process_index,N,datestr(datetime('now')));   
     
     obj=maxCorr(@maxCorr_fMRI_dataloader,CFG.cfg,N);
-    
+        
     d = obj.getPart(CFG.cfg.process_index);
-
+    % matrix "d" is time x signals and all signals are now standardized
+    
+    fprintf('loaded data contains %i signals and %i timepoints (%s)\n',size(d,2),size(d,1),datestr(datetime('now')));      
+        
     % compute (unscaled) covariance matrix
     try
         XXt = d*d';

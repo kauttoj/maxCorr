@@ -10,17 +10,26 @@ assert(length(cfg.filenames)==N_subj);
 
 datafile_in = cfg.filenames(index).sourcefile;
 datafile_out = cfg.filenames(index).targetfile;
-maskfile = cfg.filenames(index).maskfile;
+
+% which mask we should use (noise or full data)
+if ischar(verbose) && strcmp(verbose,'real')
+    maskfile = cfg.filenames(index).data_maskfile;
+else
+    maskfile = cfg.filenames(index).maskfile;
+end
+
+assert(~isempty(maskfile));
 
 if cfg.useUntouchNifti==1
     nii_mask=load_untouch_nii(maskfile);
 else
     nii_mask=load_nii(maskfile);
 end
+
 mask=nii_mask.img;
 maskID=find(mask>0);
 
-assert(length(maskID)>1000); % there should be a least 1000+ voxels!
+assert(length(maskID)>100); % there should be 100+ voxels in mask!
 
 data_out=[];
 if nargin<5

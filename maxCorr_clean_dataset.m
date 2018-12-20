@@ -147,21 +147,27 @@ function maxCorr_clean_dataset(cfg_file)
     % project shared projections out from individual projection
     XXtp=P*XXtp*P';
     % find individual components
-    [U,S]=svd(XXtp);
+    [U,S]=svd(XXtp);            
     S=diag(S)/r2;
     % remove the weakest components (typically only interested in first <11)
     U=U(:,1:end-size(u,2));
     S=S(1:end-size(u,2));
     
-    fprintf('...%i: loading data (%s)\n',subj_iter,datestr(datetime('now')));  
+    fprintf('...%i: Noise data (maskfile) had %i signals with %i timepoints (%s)\n',subj_iter,data_size(subj_iter,2),data_size(subj_iter,1),datestr(datetime('now'))); 
+    fprintf('...%i: loading full data (%s)\n',subj_iter,datestr(datetime('now')));  
     % get original data
-    data = obj.loadFunc(CFG.cfg,subj_iter,obj.N,0);
-    assert(data_size(subj_iter,2)==size(data,2));
-	fprintf('...%i: data has %i signals with %i timepoints (%s)\n',subj_iter,size(data,2),size(data,1),datestr(datetime('now')));
+    data = obj.loadFunc(CFG.cfg,subj_iter,obj.N,'real');
+    
+    %assert(data_size(subj_iter,2)==size(data,2)); % Dec 2018: need to drop this as the mask can now be different
+    
+	fprintf('...%i: Full data (data_maskfile) has %i signals with %i timepoints (%s)\n',subj_iter,size(data,2),size(data,1),datestr(datetime('now')));
     % design matrix of noise for this subject
     X = U(:,1:CFG.cfg.N_MaxCorr_components);
+    
+    noise_design = X; % this is our noise design matrix
+    
     % add constant just in case
-    X = [ones(size(X,1),1),X];
+    %X = [ones(size(X,1),1),X];
     % regress out via pseudoinverse, retain means
     orig_var = var(data);
 	% store means
@@ -177,18 +183,18 @@ function maxCorr_clean_dataset(cfg_file)
     % save cleaned data
     fprintf('...%i: saving data (%s)\n',subj_iter,datestr(datetime('now')));
 	% by entering 5th input, we save the cleaned data
-    obj.loadFunc(CFG.cfg,subj_iter,obj.N,0,data,var_red_ratio);    
+    obj.loadFunc(CFG.cfg,subj_iter,obj.N,'real',data,var_red_ratio);    
     fprintf('...%i: done! (%s)\n',subj_iter,datestr(datetime('now')));
     
     CFG.stage = 2;
     
-    save_cfg(CFG.cfg.filenames(CFG.cfg.process_index).cfgfile,CFG.cfg,CFG.stage,var_red_summary,var_red_ratio,data_size(subj_iter,:));
+    save_cfg(CFG.cfg.filenames(CFG.cfg.process_index).cfgfile,CFG.cfg,CFG.stage,var_red_summary,var_red_ratio,noise_design,data_size(subj_iter,:));
     
 end
 
-function save_cfg(filename,cfg,stage,variance_reduction_total_prc,variance_reduction_ratio,data_size)
+function save_cfg(filename,cfg,stage,variance_reduction_total_prc,variance_reduction_ratio,noise_design,data_size)
 
-save(filename,'cfg','stage','variance_reduction_total_prc','variance_reduction_ratio','data_size','-v7.3');
+save(filename,'cfg','stage','variance_reduction_total_prc','variance_reduction_ratio','data_size','noise_design','-v7.3');
 
 end
 
