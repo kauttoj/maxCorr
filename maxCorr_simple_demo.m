@@ -19,11 +19,6 @@ T = 300; % timepoints
 N_common_signals = 15; % how many common signals
 N_unique_signals = 30; % how many unique/individual signals
 N_MaxCorr_components = 10; % how many noise components to remove
-N_voxels = 500+randi(100,1,N_subj); % randomize voxel count per subject
-T = 300; % timepoints
-N_common_signals = 15; % how many common signals
-N_unique_signals = 30; % how many unique/individual signals
-N_MaxCorr_components = 10; % Important!
 
 % create common signals (stimulus driven)
 common_signals = randn(T,N_common_signals);
