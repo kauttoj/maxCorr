@@ -20,14 +20,15 @@ subjects = {'sub-19' 'sub-22' 'sub-37' 'sub-25' 'sub-35' 'sub-44'};
 sessions = [1]; % or runs
 
 cfg=[];
-cfg.recompute_all = 0; % set 1 if want to recompute all results (otherwise skips all existing results)
+cfg.recompute_all = 1; % set 1 if want to recompute all results (otherwise skips all existing results)
 cfg.output_folder = [pwd,filesep,'TESTDATA']; % put all new files here (useful for TESTING)
 cfg.maxCorr_path = pwd;
 cfg.useUntouchNifti = 0; % use UNTOUCH nifti read/write mode, recommended only for native space data!
 % cfg.N_timepoints = 100; % if set, only take fixed number of timepoints (useful if there are excess data at the end)
 cfg.N_MaxCorr_components = 5; % how many individual "noise" components to remove (~5-10 typically ok)
 cfg.removeCommon = 1; % if yes, we do REVERSE maxCorr by removing maximal common components in aim is to boost individual signal power
-%cfg.doLocalSerial = 1; % if 1, using local computing instead of submitting jobs to SLURM, ONLY FOR DEBUGGING!
+cfg.doLocalSerial = 1; % if 1, using local computing instead of submitting jobs to SLURM, ONLY FOR DEBUGGING!
+cfg.TR=2.4;
 
 %% following three parameters are optional, comment out for defaults (safest option)
 %cfg.limn_in=0; % maximum component limit
