@@ -1,7 +1,11 @@
 function maxCorr_clean_group_data_SLURM(cfg)
 % run maxCorr for a group using grid processing (one job/subject)
 
-assert(cfg.N_MaxCorr_components>0 && cfg.N_MaxCorr_components<15);
+assert(cfg.N_MaxCorr_components>0 && cfg.N_MaxCorr_components<16,'Component count must be between 1 and 15 (comment out this line to override this limitation!)');
+
+if ~isfield(cfg,'removeCommon')
+    cfg.removeCommon=0;
+end
 
 if ~isfield(cfg,'NullModel')
     cfg.NullModel = 'parametric';
@@ -63,7 +67,11 @@ for i = 1:N
     cfg.filenames(i).jobfile1 = [filepath,filesep,sprintf('maxCorr_COV_jobfile_%icomp_subject%i',cfg.N_MaxCorr_components,i)];
     cfg.filenames(i).jobfile2 = [filepath,filesep,sprintf('maxCorr_cleaning_jobfile_%icomp_subject%i',cfg.N_MaxCorr_components,i)];
     cfg.filenames(i).covfile = [filepath,filesep,filename,sprintf('_COV%s.mat',id)];
-    cfg.filenames(i).targetfile = [filepath,filesep,filename,sprintf('_maxCorr%icomp%s.nii',cfg.N_MaxCorr_components,id)];
+    if cfg.removeCommon
+        cfg.filenames(i).targetfile = [filepath,filesep,filename,sprintf('_REVERSEmaxCorr%icomp%s.nii',cfg.N_MaxCorr_components,id)];
+    else
+        cfg.filenames(i).targetfile = [filepath,filesep,filename,sprintf('_maxCorr%icomp%s.nii',cfg.N_MaxCorr_components,id)];        
+    end
     
     if ~isfield(cfg.filenames(i),'data_maskfile') || (isfield(cfg.filenames(i),'data_maskfile') && isempty(cfg.filenames(i).data_maskfile))
         cfg.filenames(i).data_maskfile = cfg.filenames(i).maskfile;

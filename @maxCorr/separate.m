@@ -1,4 +1,4 @@
-function [U,S]=separate(obj,W,limn,tol,NullModel)
+function [U,S]=separate(obj,W,usageType,limn,tol,NullModel)
 % [U,S] = obj.separate(W,limn,tol)
 %
 % Find the components that separate the chosen data-sets from
@@ -48,19 +48,20 @@ Nr = obj.data_size(1,1); %% added by JK (this should be always equal)
 Nc = round(mean(obj.data_size(wni,2))); %% added by JK (affects in estimation of upper limit of noise component count)
 Nv = obj.maxComponents();
 
-if (nargin<3), 
+if nargin<3
+    usageType = 0;
+end
+if (nargin<4), 
     limn = []; 
 else
     limn = round(limn); 
 end
-
-if (nargin<4),
+if (nargin<5),
     tol = 0.3660; % 30 deg separation
 elseif (tol==0.0),
     tol = [];
 end
-
-if (nargin<5),
+if (nargin<6),
     NullModel = 'parametric';
 end
 
@@ -97,6 +98,15 @@ end;
 %  XXtp = covariance matrix of the dataset to estimate noise components
 %  XXtn = sum of covariance matrices of all other datasets
 %
+if usageType==1
+    [U,S]=svd(XXtn,'econ');
+    S=diag(S);
+    Ntol = sum(S>abs(tol(1)));
+    U = U(:,1:Ntol);  
+    S = S(1:Ntol);
+    return
+end
+
 if strcmp(NullModel,'nonparametric')
     % find common component count (K) using permutations for circularly
     % shifted timeseries
@@ -137,7 +147,7 @@ if (length(u)),
     P=eye(size(XXtp,1),size(XXtp,1),class(U))-u*pinv(u);
     [UU,s]=svd(P*U,'econ');
 else
-    [UU,s]=svd(U,'econ');
+    [UU,s]=svd(U,'econ'); % note, U and UU are equal, but just in different order (check using CCA)
 end
 s = diag(s);
 if (length(tol)==0),

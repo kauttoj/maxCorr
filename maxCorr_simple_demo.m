@@ -4,6 +4,7 @@
 % Real data always contains nonlinearity, which violates MaxCorr key assumptions of linearity
 %
 % 15.9.2018 Janne Kauttonen
+% 16.5.2019 added reverse usage option
 
 clearvars;
 close all;
@@ -19,6 +20,8 @@ T = 300; % timepoints
 N_common_signals = 15; % how many common signals
 N_unique_signals = 30; % how many unique/individual signals
 N_MaxCorr_components = 10; % how many noise components to remove
+
+RemovalType = 0; % 0 = original maxCorr to remove INDIVIDUAL signals, 1 = reverse maxCorr to remove SHARED signals
 
 % create common signals (stimulus driven)
 common_signals = randn(T,N_common_signals);
@@ -81,7 +84,7 @@ for i=1:N_subj
     % S = 1 x component, eigenvalue
     fprintf('Computing regressors for subject %i\n',i);
     %[U{i},S{i}] = obj.separate(w,[],[],'nonparametric'); % use nonparametric component count estimation (experimental, heavy cleaning)
-    [U{i},S{i}] = obj.separate(w);% use standard parametric estimation (recommended, light cleaning)
+    [U{i},S{i}] = obj.separate(w,RemovalType);% use standard parametric estimation (recommended, light cleaning)
     
     % test how well U can explain different parts of original signals
     fprintf('..separation result for subject %i\n',i);

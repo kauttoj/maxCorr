@@ -40,7 +40,11 @@ function maxCorr_clean_dataset(cfg_file)
         NullModel=CFG.cfg.NullModel;
     end
     assert(strcmp(NullModel,'nonparametric') || strcmp(NullModel,'parametric'));   
-
+    if ~isfield(CFG.cfg,'removeCommon')
+        removeCommon = 0;    
+    else
+        removeCommon = CFG.cfg.removeCommon;
+    end    
     if ~isfield(CFG.cfg,'limn')
         limn = [];
     else
@@ -86,72 +90,86 @@ function maxCorr_clean_dataset(cfg_file)
     %  XXtp = covariance matrix of the dataset to estimate noise components
     %  XXtn = sum of covariance matrices of all other datasets
     %
-    if 0% strcmp(NullModel,'nonparametric') SKIP it for now - experimental with risk of real signal removal
-        fprintf('...%i: starting permutations (%s)\n',subj_iter,datestr(datetime('now')));
-        % find common component count (K) using permutations for circularly
-        % shifted timeseries
-        [U,ss]=svd(XXtn,0);
-        ss = diag(ss);
-        nullvals=nan(1,1000);
-        for iter = 1:1000
-            XXtn_null=zeros(Nr,Nr,data_type);
-            for j=1:length(wni),
-                perm = circshift(1:ND,[0,randi(ND-1)]);
-                % permuting covariance matrix rows & cols equals to permuting original
-                % timeseries
-                XXtn_null=XXtn_null-obj.XXt{wni(j)}(perm,perm)*W(wni(j));
-            end;
-            [~,s]=svds(XXtn_null,1);
-            nullvals(iter)=s;
+    if removeCommon
+        % we want to remove COMMON signals        
+        fprintf('\n!!!!!! NOTE: Doing REVERSE maxCorr by removing COMMON signals !!!!!\n'); 
+        [U,S]=svd(XXtn,'econ');
+        S=diag(S);
+        Ntol = sum(S>abs(tol(1)));
+        U = U(:,1:Ntol);
+        S = S(1:Ntol);
+        N_common_space = CFG.cfg.N_MaxCorr_components;
+        
+    else
+        % we want to remove INDIVIDUAL signals
+        if 0% strcmp(NullModel,'nonparametric') SKIP it for now - experimental with risk of real signal removal
+            fprintf('...%i: starting permutations (%s)\n',subj_iter,datestr(datetime('now')));
+            % find common component count (K) using permutations for circularly
+            % shifted timeseries
+            [U,ss]=svd(XXtn,0);
+            ss = diag(ss);
+            nullvals=nan(1,1000);
+            for iter = 1:1000
+                XXtn_null=zeros(Nr,Nr,data_type);
+                for j=1:length(wni),
+                    perm = circshift(1:ND,[0,randi(ND-1)]);
+                    % permuting covariance matrix rows & cols equals to permuting original
+                    % timeseries
+                    XXtn_null=XXtn_null-obj.XXt{wni(j)}(perm,perm)*W(wni(j));
+                end;
+                [~,s]=svds(XXtn_null,1);
+                nullvals(iter)=s;
+            end
+            % retain components that surpass 1% of top null values
+            % lower and hence more aggressive than parametric estimates
+            U=U(:,find(ss>prctile(nullvals,1)));
+        else
+            % find common component count (K) using parametric estimate
+            % More conservative default option (in paper)
+            U=findXXt_strict(XXtn,-sum(W(wni)),r2,limn);
         end
-        % retain components that surpass 1% of top null values
-        % lower and hence more aggressive than parametric estimates
-        U=U(:,find(ss>prctile(nullvals,1)));
-    else
-        % find common component count (K) using parametric estimate
-        % More conservative default option (in paper)
-        U=findXXt_strict(XXtn,-sum(W(wni)),r2,limn);
-    end
-    N_common_space = size(U,2);
-    
-    % construct "must have" regressors
-    u=[];
-    if (length(obj.getCR())),
-        u=[u obj.getCR()];
-    end
-    if (length(wpi)==1 && length(obj.getIR())),
-        temp = obj.getIR();
-        u=[u temp(:,:,wpi(1))];
-    end;
-    
-    % construct rest of the regressors
-    if (length(u)),
-        u=maxCorr.normalizeRegressors(u,false);
+        N_common_space = size(U,2);
+        
+        % construct "must have" regressors
+        u=[];
+        if (length(obj.getCR())),
+            u=[u obj.getCR()];
+        end
+        if (length(wpi)==1 && length(obj.getIR())),
+            temp = obj.getIR();
+            u=[u temp(:,:,wpi(1))];
+        end;
+        
+        % construct rest of the regressors
+        if (length(u)),
+            u=maxCorr.normalizeRegressors(u,false);
+            P=eye(size(XXtp,1),size(XXtp,1),data_type)-u*pinv(u);
+            [UU,s]=svd(P*U,'econ');
+        else
+            [UU,s]=svd(U,'econ');
+        end
+        s = diag(s);
+        
+        if (length(tol)==0),
+            if (isa(U,'msMatrix')), t=U.type(); else t=data_type; end;
+            tol=max(size(U))*s(1)*eps(t);
+        end
+        Ntol = sum(s>abs(tol(1)));
+        
+        u=[u UU(:,1:Ntol)];
+        s=[];
         P=eye(size(XXtp,1),size(XXtp,1),data_type)-u*pinv(u);
-        [UU,s]=svd(P*U,'econ');
-    else
-        [UU,s]=svd(U,'econ');
+        
+        % project shared projections out from individual projection
+        XXtp=P*XXtp*P';
+        % find individual components
+        [U,S]=svd(XXtp);
+        S=diag(S)/r2;
+        % remove the weakest components (typically only interested in first <11)
+        U=U(:,1:end-size(u,2));
+        S=S(1:end-size(u,2));
     end
-    s = diag(s);
-    
-    if (length(tol)==0),
-        if (isa(U,'msMatrix')), t=U.type(); else t=data_type; end;
-        tol=max(size(U))*s(1)*eps(t);
-    end
-    Ntol = sum(s>abs(tol(1)));
-
-    u=[u UU(:,1:Ntol)]; 
-    s=[];
-    P=eye(size(XXtp,1),size(XXtp,1),data_type)-u*pinv(u);
-    
-    % project shared projections out from individual projection
-    XXtp=P*XXtp*P';
-    % find individual components
-    [U,S]=svd(XXtp);            
-    S=diag(S)/r2;
-    % remove the weakest components (typically only interested in first <11)
-    U=U(:,1:end-size(u,2));
-    S=S(1:end-size(u,2));
+    % now we have design matrix to be removed U and eigenvalues S
     
     fprintf('...%i: Noise data (maskfile) had %i signals with %i timepoints (%s)\n',subj_iter,data_size(subj_iter,2),data_size(subj_iter,1),datestr(datetime('now'))); 
     fprintf('...%i: loading full data (%s)\n',subj_iter,datestr(datetime('now')));  
@@ -161,6 +179,7 @@ function maxCorr_clean_dataset(cfg_file)
     %assert(data_size(subj_iter,2)==size(data,2)); % Dec 2018: need to drop this as the mask can now be different
     
 	fprintf('...%i: Full data (data_maskfile) has %i signals with %i timepoints (%s)\n',subj_iter,size(data,2),size(data,1),datestr(datetime('now')));
+    
     % design matrix of noise for this subject
     X = U(:,1:CFG.cfg.N_MaxCorr_components);
     

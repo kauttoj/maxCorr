@@ -15,17 +15,19 @@ close all;
 clc;
 
 % we assume that NIFTI data is stored as /dataroot/subject/run/*.nii
-dataroot = '/m/nbe/scratch/alex/private/janne/preprocessed_ini_data';
-subjects = {'b1k','d3a','d4w','d6i','e6x','g3r','i2p','i7c','m3s','m8f','n5n','n5s','n6z','o9e','p5n','p9u','q4c','t9u','v1i','v5b','y6g'};
-sessions = [2     3     5     7     8]; % or runs
+dataroot = [pwd,filesep,'TESTDATA'];
+subjects = {'sub-19' 'sub-22' 'sub-37' 'sub-25' 'sub-35' 'sub-44'};
+sessions = [1]; % or runs
 
 cfg=[];
 cfg.recompute_all = 0; % set 1 if want to recompute all results (otherwise skips all existing results)
-%cfg.output_folder = '/m/nbe/scratch/alex/private/janne/preprocessed_ini_data/testing'; % put all new files here (useful for TESTING)
-cfg.maxCorr_path = '/m/nbe/scratch/braindata/kauttoj2/code/maxCorr';
+cfg.output_folder = [pwd,filesep,'TESTDATA']; % put all new files here (useful for TESTING)
+cfg.maxCorr_path = pwd;
 cfg.useUntouchNifti = 0; % use UNTOUCH nifti read/write mode, recommended only for native space data!
 % cfg.N_timepoints = 100; % if set, only take fixed number of timepoints (useful if there are excess data at the end)
 cfg.N_MaxCorr_components = 5; % how many individual "noise" components to remove (~5-10 typically ok)
+cfg.removeCommon = 1; % if yes, we do REVERSE maxCorr by removing maximal common components in aim is to boost individual signal power
+%cfg.doLocalSerial = 1; % if 1, using local computing instead of submitting jobs to SLURM, ONLY FOR DEBUGGING!
 
 %% following three parameters are optional, comment out for defaults (safest option)
 %cfg.limn_in=0; % maximum component limit
@@ -45,7 +47,7 @@ for ses = sessions,
         
         % assumed form of datapath
         % NOTE: Also a folder to save all results and tempfiles for this subject
-        filename = sprintf('%s/%s/run%i/detrended_data.nii',dataroot,sub,ses);
+        filename = sprintf('%s\\%s_mask_detrend_fullreg_filtered_smoothed.nii',dataroot,sub);
         cfg.filenames(s).sourcefile = filename;
 
         % OPTIONAL: You can separate data and noise masks, i.e., get signals from noise mask and apply cleaning to data mask
@@ -56,7 +58,7 @@ for ses = sessions,
         
         % assumed form and name of the mask. This should be a "loose" mask for brain
         % voxels and surrounding space where we obtain relevant signals
-        filename = sprintf('%s/%s/run%i/mask.nii',dataroot,sub,ses);
+        filename = sprintf('%s\\grand_analysis_mask.nii',dataroot);
         cfg.filenames(s).maskfile = filename;           
     end      
     % run maxCorr for this session/run
